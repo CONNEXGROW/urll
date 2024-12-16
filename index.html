@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>URL Safety Checker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    h1 {
+      color: #444;
+    }
+    form {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    input[type="text"] {
+      padding: 10px;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      max-width: 500px;
+    }
+    #spinner {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>URL Safety Checker</h1>
+  <form id="urlForm">
+    <input type="text" id="urlInput" placeholder="Enter a URL to check" required>
+    <button type="submit">Check URL</button>
+  </form>
+  <div id="result" aria-live="polite"></div>
+  <div id="spinner">🔄 Checking...</div>
+
+  <script>
+    document.getElementById('urlForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      const url = document.getElementById('urlInput').value.trim();
+      const resultDiv = document.getElementById('result');
+      const spinner = document.getElementById('spinner');
+      resultDiv.innerHTML = '';
+      spinner.style.display = 'block';
+
+      try {
+        const response = await fetch('http://localhost:3000/scan-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url })
+        });
+
+        spinner.style.display = 'none';
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Analyze results from VirusTotal (example)
+        const stats = data.data.attributes.stats;
+        const malicious = stats.malicious || 0;
+        const suspicious = stats.suspicious || 0;
+        const harmless = stats.harmless || 0;
+
+        if (malicious > 0) {
+          resultDiv.innerHTML = `<p style="color: red;"><strong>Warning!</strong> This website is flagged as malicious.</p>`;
+        } else if (suspicious > 0) {
+          resultDiv.innerHTML = `<p style="color: orange;"><strong>Caution!</strong> This website exhibits suspicious behavior.</p>`;
+        } else if (harmless > 0) {
+          resultDiv.innerHTML = `<p style="color: green;">This website is safe to visit.</p>`;
+        } else {
+          resultDiv.innerHTML = `<p>The safety status of this website could not be determined.</p>`;
+        }
+      } catch (error) {
+        spinner.style.display = 'none';
+        resultDiv.innerHTML = error.message || 'An error occurred. Please try again.';
+      }
+    });
+  </script>
+</body>
+</html>
