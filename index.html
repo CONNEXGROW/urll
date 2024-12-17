@@ -1,118 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>URL Safety Checker</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      color: #333;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-    }
-    h1 {
-      color: #444;
-    }
-    form {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    input[type="text"] {
-      padding: 10px;
-      width: 300px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px 20px;
-      background-color: #28a745;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #218838;
-    }
-    #result {
-      margin-top: 20px;
-      padding: 10px;
-      background-color: #fff;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      max-width: 500px;
-    }
-    #spinner {
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .highlights {
+            margin-top: 20px;
+        }
+        .positive, .negative {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .positive {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .negative {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
 </head>
 <body>
-  <h1>URL Safety Checker</h1>
-  <form id="urlForm">
-    <input type="text" id="urlInput" placeholder="Enter a URL to check" required>
-    <button type="submit">Check URL</button>
-  </form>
-  <div id="result" aria-live="polite"></div>
-  <div id="spinner">🔄 Checking...</div>
+    <div class="container">
+        <h1>URL Checker</h1>
+        <input type="text" id="urlInput" placeholder="Enter a URL (e.g., https://example.com)">
+        <button onclick="checkURL()">Check URL</button>
+        <div class="highlights" id="result"></div>
+    </div>
+    <script>
+        function checkURL() {
+            const url = document.getElementById("urlInput").value;
+            const resultDiv = document.getElementById("result");
+            resultDiv.innerHTML = "";
 
-  <script>
-    document.getElementById('urlForm').addEventListener('submit', async function (event) {
-      event.preventDefault();
+            // Example pre-defined conditions for checking
+            const positives = [];
+            const negatives = [];
 
-      const url = document.getElementById('urlInput').value.trim();
-      const resultDiv = document.getElementById('result');
-      const spinner = document.getElementById('spinner');
-      resultDiv.innerHTML = '';
-      spinner.style.display = 'block';
+            if (url.startsWith("https")) {
+                positives.push("The website has a valid SSL certificate.");
+            } else {
+                negatives.push("The website does not have a valid SSL certificate.");
+            }
 
-      try {
-        const response = await fetch('http://localhost:3000/scan-url', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ url })
-        });
+            if (url.includes("game")) {
+                negatives.push("It seems you can download games from this site, which may be risky.");
+            }
 
-        spinner.style.display = 'none';
+            if (url.includes(".com")) {
+                positives.push("The website has a .com domain, which is commonly trusted.");
+            }
 
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
+            if (url.includes("oceansofgames")) {
+                negatives.push("We found mainly negative reviews about this site.");
+            } else {
+                positives.push("The site appears to have a neutral reputation.");
+            }
+
+            // Generate results
+            if (positives.length > 0) {
+                const positiveDiv = document.createElement("div");
+                positiveDiv.classList.add("positive");
+                positiveDiv.innerHTML = `<h3>Positive Highlights:</h3><ul>${positives.map(p => `<li>${p}</li>`).join("")}</ul>`;
+                resultDiv.appendChild(positiveDiv);
+            }
+
+            if (negatives.length > 0) {
+                const negativeDiv = document.createElement("div");
+                negativeDiv.classList.add("negative");
+                negativeDiv.innerHTML = `<h3>Negative Highlights:</h3><ul>${negatives.map(n => `<li>${n}</li>`).join("")}</ul>`;
+                resultDiv.appendChild(negativeDiv);
+            }
         }
-
-        const data = await response.json();
-
-        // Analyze results from VirusTotal (example)
-        const stats = data.data.attributes.stats;
-        const malicious = stats.malicious || 0;
-        const suspicious = stats.suspicious || 0;
-        const harmless = stats.harmless || 0;
-
-        if (malicious > 0) {
-          resultDiv.innerHTML = `<p style="color: red;"><strong>Warning!</strong> This website is flagged as malicious.</p>`;
-        } else if (suspicious > 0) {
-          resultDiv.innerHTML = `<p style="color: orange;"><strong>Caution!</strong> This website exhibits suspicious behavior.</p>`;
-        } else if (harmless > 0) {
-          resultDiv.innerHTML = `<p style="color: green;">This website is safe to visit.</p>`;
-        } else {
-          resultDiv.innerHTML = `<p>The safety status of this website could not be determined.</p>`;
-        }
-      } catch (error) {
-        spinner.style.display = 'none';
-        resultDiv.innerHTML = error.message || 'An error occurred. Please try again.';
-      }
-    });
-  </script>
+    </script>
 </body>
 </html>
